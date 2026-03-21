@@ -9,9 +9,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 token = os.environ.get("BOT_TOKEN", "7726206815:AAFT-IsYCyhoHNSVbCr3MlXvIw77dHnciY0")
 api_url = f"https://api.telegram.org/bot{token}/"
 db_file = "db.json"
-port = int(os.environ.get("PORT", 8080)) # порт для render
+port = int(os.environ.get("PORT", 8080))
 
-# веб-сервер для "оживки" на хостинге
 class HealthCheckHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -19,21 +18,29 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"bot is alive")
 
+    def do_HEAD(self):
+        self.send_response(200)
+        self.end_headers()
+
+    def log_message(self, format, *args):
+        return
+
 def run_web_server():
     server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
     server.serve_forever()
 
-# логика бота
 def load_db():
     if os.path.exists(db_file):
         with open(db_file, "r", encoding="utf-8") as f:
-            return json.load(f)
+            try: return json.load(f)
+            except: return {}
     return {}
 
 def save_db(data):
     with open(db_file, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False)
 
+# инициализация базы
 db = load_db()
 
 def request(method, params):
@@ -53,41 +60,53 @@ def run_bot():
                 for up in updates["result"]:
                     offset = up["update_id"] + 1
                     
+                    # настройка в лс
                     if "message" in up and up["message"]["chat"]["type"] == "private":
                         msg = up["message"]
-                        chat_id = msg["chat"]["id"]
+                        cid = msg["chat"]["id"]
                         text = msg.get("text", "")
                         if "|" in text:
                             try:
-                                cid, txt, lnk = text.split("|")
-                                db[str(cid.strip())] = {"t": txt.strip(), "l": lnk.strip()}
+                                target_id, t_txt, t_lnk = text.split("|")
+                                db[str(target_id.strip())] = {"t": t_txt.strip(), "l": t_lnk.strip()}
                                 save_db(db)
-                                request("sendMessage", {"chat_id": chat_id, "text": "done"})
+                                request("sendMessage", {"chat_id": cid, "text": "done"})
                             except:
-                                request("sendMessage", {"chat_id": chat_id, "text": "error"})
+                                request("sendMessage", {"chat_id": cid, "text": "error"})
                         else:
-                            request("sendMessage", {"chat_id": chat_id, "text": "айди|текст|ссылка"})
+                            request("sendMessage", {"chat_id": cid, "text": "айди|текст|ссылка"})
 
+                    # обработка каналов
                     elif "channel_post" in up:
                         post = up["channel_post"]
                         chid = str(post["chat"]["id"])
+                        mid = post["message_id"]
+                        
                         if chid in db:
                             conf = db[chid]
-                            orig = post.get("text") or post.get("caption")
+                            # проверяем текст или описание (caption) для медиа
+                            is_cap = "caption" in post
+                            orig = post.get("caption") if is_cap else post.get("text")
+                            
                             if orig and f"href='{conf['l']}'" not in orig:
-                                link_text = f"<a href='{conf['l']}'>{conf['t']}</a>"
-                                new = f"{orig}\n\n{link_text}"
-                                met = "editMessageCaption" if "caption" in post else "editMessageText"
-                                par = {"chat_id": chid, "message_id": post["message_id"], "parse_mode": "html", "disable_web_page_preview": True}
-                                if "caption" in post: par["caption"] = new
-                                else: par["text"] = new
+                                link_html = f"<a href='{conf['l']}'>{conf['t']}</a>"
+                                new_text = f"{orig}\n\n{link_html}"
+                                
+                                met = "editMessageCaption" if is_cap else "editMessageText"
+                                par = {
+                                    "chat_id": chid,
+                                    "message_id": mid,
+                                    "parse_mode": "html",
+                                    "disable_web_page_preview": True
+                                }
+                                if is_cap: par["caption"] = new_text
+                                else: par["text"] = new_text
+                                
                                 request(met, par)
             time.sleep(1)
         except:
             time.sleep(5)
 
 if __name__ == "__main__":
-    # запуск веб-сервера в фоне
     threading.Thread(target=run_web_server, daemon=True).start()
-    # запуск бота
     run_bot()

@@ -13,7 +13,6 @@ from typing import Dict, List, Tuple, Optional, Any
 TOKEN = "8336344569:AAHhN67bsk8tbUpyJ1MMtgh72f-I1f2rKRk"
 BASE_URL = f"https://api.telegram.org/bot{TOKEN}"
 ADMIN_ID = 8292372344
-CURRENT_DATE = datetime(2026, 3, 29)
 PORT = int(os.environ.get('PORT', 8080))
 
 # Настройка логирования
@@ -34,7 +33,7 @@ db_cursor.execute('''
 ''')
 db_conn.commit()
 
-# Опорные точки для интерполяции (максимально точные данные)
+# Опорные точки для интерполяции
 MILESTONES = {
     2768409: 1383264000000,
     7679610: 1388448000000,
@@ -88,6 +87,9 @@ MILESTONES = {
     9000000000: 1774915200000
 }
 
+def get_current_date():
+    return datetime.now()
+
 class RegistrationAnalyzer:
     def __init__(self, milestones: Dict[int, int]):
         self.milestones = milestones
@@ -116,13 +118,14 @@ class RegistrationAnalyzer:
         return np.polyval(coeffs, user_id)
     
     def calculate_age(self, reg_date: datetime) -> Tuple[int, int, int]:
-        years = CURRENT_DATE.year - reg_date.year
-        months = CURRENT_DATE.month - reg_date.month
-        days = CURRENT_DATE.day - reg_date.day
+        current = get_current_date()
+        years = current.year - reg_date.year
+        months = current.month - reg_date.month
+        days = current.day - reg_date.day
         
         if days < 0:
             months -= 1
-            prev_month = CURRENT_DATE.replace(day=1) - timedelta(days=1)
+            prev_month = current.replace(day=1) - timedelta(days=1)
             days += prev_month.day
         
         if months < 0:
@@ -133,15 +136,16 @@ class RegistrationAnalyzer:
     
     def get_precision(self, user_id: int) -> str:
         if user_id in self.milestones:
-            return "эталонная точность (прямое попадание)"
+            return "эталонная точность"
         elif user_id <= self.ids_array[-1]:
-            return "высокая точность (интерполяция между известными точками)"
+            return "интерполяция"
         else:
-            return "прогнозная точность (экстраполяция)"
+            return "экстраполяция"
     
     def generate_report(self, user_id: int, reg_date: datetime, timestamp: int, username: str = None) -> str:
         years, months, days = self.calculate_age(reg_date)
         precision = self.get_precision(user_id)
+        current = get_current_date()
         
         report = f"""РЕГИСТРАЦИОННЫЙ АНАЛИЗ - ID {user_id}
 {'USERNAME: @' + username if username else ''}
@@ -154,13 +158,14 @@ unix timestamp (мс): {timestamp}
 опорных точек: {len(self.milestones)}
 точность: {precision}
 
-анализ завершен: {CURRENT_DATE.strftime('%Y-%m-%d %H:%M:%S')}
+анализ завершен: {current.strftime('%Y-%m-%d %H:%M:%S')}
 """
         return report
     
     def generate_html_report(self, user_id: int, reg_date: datetime, timestamp: int, username: str = None) -> str:
         years, months, days = self.calculate_age(reg_date)
         precision = self.get_precision(user_id)
+        current = get_current_date()
         
         html = f"""<!DOCTYPE html>
 <html>
@@ -246,7 +251,7 @@ unix timestamp (мс): {timestamp}
         </div>
         
         <div class="footer">
-            completed: {CURRENT_DATE.strftime('%Y-%m-%d %H:%M:%S')}
+            completed: {current.strftime('%Y-%m-%d %H:%M:%S')}
         </div>
     </div>
 </body>
@@ -626,7 +631,7 @@ bot = None
 
 @app.route('/')
 def index():
-    return jsonify({"status": "active", "message": "bot is running"}), 200
+    return jsonify({"status": "active", "message": "bot is running", "time": datetime.now().isoformat()}), 200
 
 @app.route('/health')
 def health():

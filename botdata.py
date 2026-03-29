@@ -10,7 +10,7 @@ import logging
 from typing import Dict, List, Tuple, Optional, Any
 
 # Конфигурация
-TOKEN = "8336344569:AAHhN67bsk8tbUpyJ1MMtgh72f-I1f2rKRk"
+TOKEN = "8764226014:AAEXZjRy0U5EvnRLeM2cru99-WzmfK39vnE"
 BASE_URL = f"https://api.telegram.org/bot{TOKEN}"
 ADMIN_ID = 8292372344
 PORT = int(os.environ.get('PORT', 8080))

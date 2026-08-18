@@ -1,238 +1,135 @@
-# Unified Telegram Bots
+# CrolGram - Premium Messaging & Collectibles
 
-Объединённый Python-проект для запуска **4 Telegram-ботов** на **Render.com** с поддержкой **UptimeRobot**.
+Modern iOS-first web application built with Next.js, React, TypeScript, and Firebase.
 
-## 📋 Структура проекта
+## Features
 
-Проект содержит 4 независимых Telegram-бота, работающих параллельно:
+- 🔐 Email/Password authentication with Firebase
+- 💬 Messaging system (foundation)
+- 🎁 Collectible gifts system (coming)
+- 🏪 Marketplace for trading gifts (coming)
+- ⭐ CrolGram Stars currency system
+- 🌙 Dark/Light/AMOLED themes
+- 📱 PWA-ready, mobile-first design
+- ✔️ Safe area support for notched devices
 
-### 1. **Combined Bot** (основной двойной бот)
-- **Токен:** `BOT_TOKEN`
-- **Функционал:**
-  - Сингулярное ядро (idle-игра)
-  - Экономика GRAM (виртуальная валюта, мини-игры)
+## Tech Stack
 
-### 2. **RegBot** (анализ даты регистрации)
-- **Токен:** `BOT_TOKEN_DATA`
-- **Функционал:**
-  - Анализ даты регистрации Telegram аккаунта по ID
-  - Загрузка отчётов (.txt, .html)
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Backend**: Firebase (Auth, Firestore, Storage)
+- **Animations**: Framer Motion
+- **State**: Zustand
+- **Icons**: Custom SVG system
 
-### 3. **Profile Bot** (генератор профиля)
-- **Токен:** `BOT_TOKEN_PROFILE`
-- **Функционал:**
-  - Генерация мокапа профиля Telegram в стиле iOS
-  - Ввод имени, юзернейма, статуса, "о себе", фото
-  - Выбор часового пояса
+## Setup
 
-### 4. **CumBot** (новый КончаБот)
-- **Токен:** `BOT_TOKEN_CUM`
-- **Функционал:**
-  - Команда/текст "выстрел" — стрелять
-  - Выстрел с reply — стрелять по пользователю
-  - Анимация процесса (edit_message_text)
-  - Топ-10 лидеров по кончи
-  - Админ-команды: `/дать` и `/забрать`
-  - БД SQLite для хранения баланса кончи
-
-## 🚀 Быстрый старт локально
-
-### 1. Установка зависимостей
+### 1. Clone and install
 
 ```bash
-pip install -r requirements.txt --break-system-packages
+npm install
 ```
 
-### 2. Подготовка переменных окружения
+### 2. Firebase Configuration
 
-Скопируй `.env.example` в `.env` и заполни все 4 токена:
+Create `.env.local`:
+
+```
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+```
+
+### 3. Run development server
 
 ```bash
-cp .env.example .env
+npm run dev
 ```
 
-Отредактируй `.env`:
+Open [http://localhost:3000](http://localhost:3000)
 
-```env
-BOT_TOKEN=your_combined_bot_token
-BOT_TOKEN_DATA=your_regbot_token
-BOT_TOKEN_PROFILE=your_profile_bot_token
-BOT_TOKEN_CUM=your_cumbot_token
-ADMIN_IDS=your_admin_id_1,your_admin_id_2
-PORT=8080
-```
-
-### 3. Запуск проекта
-
-```bash
-python main.py
-```
-
-Flask сервер запустится на `http://localhost:8080`, а все 4 бота начнут polling в отдельных потоках.
-
-## 🌐 Развёртывание на Render.com
-
-### 1. Создай репозиторий на GitHub
-
-```bash
-git init
-git add .
-git commit -m "initial commit"
-git remote add origin https://github.com/your-username/unified-telegram-bots.git
-git push -u origin main
-```
-
-### 2. Создай веб-сервис на Render.com
-
-1. Перейди на [render.com](https://render.com)
-2. Нажми "New +" → "Web Service"
-3. Выбери свой GitHub репозиторий
-4. Заполни настройки:
-   - **Name:** `unified-telegram-bots`
-   - **Environment:** `Python 3`
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `python main.py`
-   - **Plan:** Free (или выше)
-
-### 3. Добавь переменные окружения
-
-В настройках сервиса добавь Environment Variables:
+## Project Structure
 
 ```
-BOT_TOKEN = your_combined_bot_token
-BOT_TOKEN_DATA = your_regbot_token
-BOT_TOKEN_PROFILE = your_profile_bot_token
-BOT_TOKEN_CUM = your_cumbot_token
-ADMIN_IDS = your_admin_id_1,your_admin_id_2
-PORT = 8080
-CUMBOT_DB_PATH = /var/data/cumbot.db
-REGBOT_REPORTS_DIR = /var/data/reports
+src/
+├── app/              # Next.js pages
+├── components/       # Reusable UI components
+├── hooks/           # Custom React hooks
+├── lib/             # Utilities (Firebase config, etc)
+├── store/           # Zustand state management
+├── types/           # TypeScript definitions
+└── styles/          # Global styles
 ```
 
-### 4. UptimeRobot интеграция
+## Key Components
 
-Используй URL сервиса на Render для пинга:
+- **MobileShell**: Handles navigation & mobile layout
+- **Button**: Reusable with variants (primary, secondary, danger, ghost)
+- **Card**: Content containers
+- **LoadingSpinner**: Loading states
+- **IconSystem**: Custom monochrome SVG icons
 
-- **Monitoring URL:** `https://your-service.onrender.com/ping`
-- **Интервал:** 5 минут
+## Authentication
 
-Это предотвратит засыпание бесплатного сервиса.
+- Sign up with email/password
+- Automatic profile creation
+- Starter bonus: 100 CG Stars
+- Firebase Security Rules protect user data
 
-## 📚 Структура файлов
+## Development
 
-```
-unified_telegram_bots/
-├── main.py                          # Главный файл запуска
-├── requirements.txt                 # Зависимости Python
-├── .env.example                    # Пример переменных окружения
-├── render.yaml                     # Конфигурация для Render.com
-├── README.md                       # Этот файл
-├── render.py                       # Рендеринг профиля iOS
-├── sjad.py                         # (устарелый, для совместимости)
-├── fonts/                          # Шрифты для профиля
-│   ├── DejaVuSans.ttf
-│   └── DejaVuSans-Bold.ttf
-├── static/                         # Статические файлы
-│   └── index.html
-├── data/                           # Данные (создаётся автоматически)
-│   ├── cumbot.db                   # БД КончаБота
-│   └── reports/                    # Отчёты RegBot
-└── app/                            # Python модули
-    ├── __init__.py
-    ├── combined_bot.py             # Combined Bot (основной)
-    ├── profile_bot.py              # Profile Bot (адаптированный)
-    ├── cumbot_runner.py            # CumBot runner
-    ├── singularity/                # Сингулярное ядро (combined)
-    ├── economy/                    # Экономика GRAM (combined)
-    ├── regbot/                     # RegBot модули
-    └── cumbot/                     # CumBot модули
-        ├── __init__.py
-        ├── db.py                   # БД кончи
-        └── handlers.py             # Обработчики команд
-```
+### Adding a new page
 
-## 🎮 Команды КончаБота
+1. Create file in `src/app/[section]/page.tsx`
+2. Wrap with auth check using `useAuthStore`
+3. Use mobile-first responsive design
 
-### Основные команды
+### Styling
 
-- **"выстрел"** (текст или команда `/выстрел`)
-  - Обычный выстрел: добавляет 1-3 кончи
-  - Выстрел с reply: добавляет 3-5 кончи, целится в пользователя
-  - Анимация: 3-4 кадра с действиями
+- Use Tailwind classes
+- Support dark mode with `dark:` prefix
+- AMOLED mode with `amoled:` prefix
 
-- **"/лидеры"** или **"/leaders"**
-  - Выводит топ-10 пользователей по кончи
+### State Management
 
-### Админ-команды (требуют прав)
+- Global: `useAuthStore`, `useThemeStore`
+- Local: React hooks (useState, useEffect)
 
-- **"/дать <количество>"** (ответом на сообщение пользователя)
-  - Дать кончу пользователю
+## Firestore Collections
 
-- **"/забрать <количество>"** (ответом на сообщение пользователя)
-  - Забрать кончу у пользователя
+- `users` - User accounts
+- `profiles` - User profiles
+- `numbers` - CrolGram phone numbers
+- `chats` - Conversations
+- `messages` - Chat messages
+- `gifts` - Collectible definitions
+- `giftInventory` - User owned gifts
+- `starBalances` - User balance
+- `marketListings` - Marketplace listings
 
-## 🔧 Конфигурация
+## Security
 
-### Переменные окружения
+✅ Server-side validation
+✅ Firestore Security Rules
+✅ No secrets in code
+✅ Protected routes
+✅ Rate limiting (Cloud Functions)
 
-| Переменная | Тип | Обязательная | Описание |
-|---|---|---|---|
-| `BOT_TOKEN` | str | ✓ | Токен Combined Bot |
-| `BOT_TOKEN_DATA` | str | ✓ | Токен RegBot |
-| `BOT_TOKEN_PROFILE` | str | ✓ | Токен Profile Bot |
-| `BOT_TOKEN_CUM` | str | ✓ | Токен CumBot |
-| `ADMIN_IDS` | str | ✓ | ID админов (через запятую) |
-| `PORT` | int | ✗ | Порт Flask (по умолчанию 8080) |
-| `CUMBOT_DB_PATH` | str | ✗ | Путь к БД КончаБота |
-| `REGBOT_REPORTS_DIR` | str | ✗ | Путь к отчётам RegBot |
+## Next Phases
 
-## 📝 Получение токенов
+1. ✅ Foundation & Auth
+2. Chats & Messaging
+3. Profile & Settings
+4. Gift System
+5. Marketplace
+6. Trading
+7. Bot Integration
+8. PWA Optimization
 
-1. Напиши [@BotFather](https://t.me/botfather) в Telegram
-2. Команда `/newbot`
-3. Введи имя и юзернейм бота
-4. Скопируй полученный токен в `.env`
+## License
 
-## 🐛 Отладка
-
-### Логи на Render.com
-
-```bash
-# В консоли Render смотри вывод:
-[combined_bot] бот запущен, начинаю polling
-[regbot] бот запущен, начинаю polling
-[profile_bot] бот запущен, начинаю polling
-[cumbot] бот запущен, начинаю polling
-```
-
-### Проверка здоровья
-
-```bash
-curl https://your-service.onrender.com/health
-```
-
-Ответ:
-
-```json
-{
-  "status": "ok",
-  "combined_bot": true,
-  "regbot": true,
-  "profile_bot": true,
-  "cumbot": true
-}
-```
-
-## 📞 Поддержка
-
-Если возникают ошибки, проверь:
-
-1. ✅ Все 4 токена корректны и активны
-2. ✅ ADMIN_IDS содержит твой Telegram ID
-3. ✅ PORT = 8080 (для Render)
-4. ✅ Интернет-соединение стабильно
-5. ✅ UptimeRobot пингует `/ping` каждые 5 минут
-
-## 📄 Лицензия
-
-MIT
+Proprietary

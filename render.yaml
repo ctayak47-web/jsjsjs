@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: unified-telegram-bots
+    env: python
+    plan: free
+    pythonVersion: 3.11
+    startCommand: python main.py
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: BOT_TOKEN
+        sync: false
+      - key: BOT_TOKEN_DATA
+        sync: false
+      - key: BOT_TOKEN_PROFILE
+        sync: false
+      - key: BOT_TOKEN_CUM
+        sync: false
+      - key: ADMIN_IDS
+        sync: false
+      - key: CUMBOT_DB_PATH
+        value: /var/data/cumbot.db
+      - key: REGBOT_REPORTS_DIR
+        value: /var/data/reports
+    buildCommand: pip install -r requirements.txt
+    healthCheckPath: /health
+    healthCheckInterval: 120

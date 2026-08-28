@@ -7,8 +7,6 @@ import telebot
 import random
 import time
 import os
-import html
-from typing import Optional
 
 from . import db
 
@@ -22,66 +20,36 @@ if ADMIN_IDS_STR:
         pass
 
 
-# Пул действий для анимации (8+ разнообразных фраз)
-ANIMATION_ACTIONS = [
-    "открывает порнхаб 🍆",
-    "смотрит категорию студентки 👨‍🎓",
-    "настраивает прицел 🎯",
-    "ищет вдохновение 💭",
-    "включает музыку 🎵",
-    "разминается перед боем 💪",
-    "медитирует в ванне 🛁",
-    "читает любовный роман 📖",
-    "вызывает мастера по ремонту 🔧",
-    "считает до десяти 🔢",
-    "занимается йогой 🧘",
-    "пьёт кофе для энергии ☕",
-]
-
-# Последние действия для каждого пользователя (избегаем повторений подряд)
-_last_action = {}
-
-
-def get_random_action(user_id: int) -> str:
-    """Получить случайное действие, исключив последнее для этого пользователя"""
-    available = ANIMATION_ACTIONS.copy()
-    
-    if user_id in _last_action:
-        # Убираем последнее действие из выбора
-        if _last_action[user_id] in available:
-            available.remove(_last_action[user_id])
-    
-    action = random.choice(available) if available else "молчит 🤐"
-    _last_action[user_id] = action
-    return action
-
-
-def escape_html(text: str) -> str:
-    """Экранировать HTML-символы в тексте"""
-    return html.escape(text, quote=False)
-
-
-def make_user_link(user_id: int, name: str) -> str:
-    """Создать HTML-ссылку на пользователя"""
-    escaped_name = escape_html(name)
-    return f'<a href="tg://user?id={user_id}">{escaped_name}</a>'
-
-
 def register_handlers(bot: telebot.TeleBot):
     """Регистрировать все обработчики КончаБота"""
 
+    @bot.message_handler(commands=["start"])
+    def handle_start(message: telebot.types.Message):
+        """Команда /start - приветствие"""
+        text = (
+            "👋 Привет! Я КончаБот – главный симулятор убойных выстрелов в Telegram!\n\n"
+            "📝 <b>Команды:</b>\n"
+            "• <code>выстрел</code> или <code>/выстрел</code> - стрелять обычно\n"
+            "• <code>выстрел</code> (ответом на сообщение) - стрелять по пользователю\n"
+            "• <code>/лидеры</code> - топ-10 кончащих\n"
+            "• <code>/дать 10</code> (ответом) - дать кончу (админ)\n"
+            "• <code>/забрать 5</code> (ответом) - забрать кончу (админ)\n\n"
+            "💦 <b>Как это работает:</b>\n"
+            "1️⃣ Напиши <code>выстрел</code>\n"
+            "2️⃣ Получишь анимацию процесса\n"
+            "3️⃣ Получишь кончу (1-3 обычно, 3-5 если по юзеру)\n"
+            "4️⃣ Появишься в топ-10 лидеров"
+        )
+        bot.reply_to(message, text, parse_mode="HTML")
+
     @bot.message_handler(
-        func=lambda msg: (
-            msg.text and 
-            ("выстрел" in msg.text.lower() or 
-             msg.text.lower() == "выстрел")
-        ),
+        func=lambda msg: msg.text and "выстрел" in msg.text.lower(),
         content_types=["text"]
     )
     def handle_fire(message: telebot.types.Message):
         """Обработчик команды выстрела"""
         user_id = message.from_user.id
-        user_name = message.from_user.first_name or f"Юзер {user_id}"
+        user_name = message.from_user.first_name or message.from_user.username or "Юзер"
         chat_id = message.chat.id
 
         # Проверяем, есть ли reply
@@ -89,34 +57,32 @@ def register_handlers(bot: telebot.TeleBot):
             # Выстрел в ответ
             target_user = message.reply_to_message.from_user
             target_id = target_user.id
-            target_name = target_user.first_name or f"Юзер {target_id}"
+            target_name = target_user.first_name or target_user.username or f"Юзер {target_id}"
 
             # Добавляем 3-5 кончи стреляющему
             amount = random.randint(3, 5)
             new_balance = db.add_balance(user_id, amount)
 
-            # Формируем итоговое сообщение
-            shooter_link = make_user_link(user_id, user_name)
-            target_link = make_user_link(target_id, target_name)
-            
+            # Финальный текст с простыми никнеймами (кликабельными)
             final_text = (
-                f"{shooter_link} кон🧴ил на {target_link} 😈\n"
+                f"<a href=\"tg://user?id={user_id}\">{user_name}</a> кон🧴ил на "
+                f"<a href=\"tg://user?id={target_id}\">{target_name}</a> 😈\n"
                 f"кончи всего - {new_balance}"
             )
 
             # Отправляем стартовое сообщение
             msg = bot.send_message(
                 chat_id,
-                f"[0%] {shooter_link} [начинает подготовку...]",
+                f"[0%] <a href=\"tg://user?id={user_id}\">{user_name}</a> [начинает подготовку...]",
                 parse_mode="HTML"
             )
 
-            # Анимация - 3-4 кадра
-            for frame in range(1, 4):
+            # Анимация - 3 кадра
+            actions = ["открывает порнхаб 🍆", "настраивает прицел 🎯", "ищет вдохновение 💭"]
+            for i, action in enumerate(actions):
                 time.sleep(1)
-                percent = (frame / 3) * 100
-                action = get_random_action(user_id)
-                frame_text = f"[{int(percent)}%] {shooter_link} [{action}]"
+                percent = ((i + 1) / 3) * 100
+                frame_text = f"[{int(percent)}%] <a href=\"tg://user?id={user_id}\">{user_name}</a> [{action}]"
                 
                 try:
                     bot.edit_message_text(
@@ -125,8 +91,8 @@ def register_handlers(bot: telebot.TeleBot):
                         message_id=msg.message_id,
                         parse_mode="HTML"
                     )
-                except Exception as e:
-                    print(f"[КончаБот] Ошибка при редактировании сообщения: {e}")
+                except:
+                    pass
 
             # Финальное сообщение
             time.sleep(1)
@@ -137,35 +103,33 @@ def register_handlers(bot: telebot.TeleBot):
                     message_id=msg.message_id,
                     parse_mode="HTML"
                 )
-            except Exception as e:
-                print(f"[КончаБот] Ошибка при отправке финального сообщения: {e}")
+            except:
+                pass
 
         else:
             # Обычный выстрел (без reply)
             amount = random.randint(1, 3)
             new_balance = db.add_balance(user_id, amount)
 
-            # Формируем итоговое сообщение
-            user_link = make_user_link(user_id, user_name)
-            
+            # Финальный текст
             final_text = (
-                f"{user_link} кон🧴ил 😈\n"
+                f"<a href=\"tg://user?id={user_id}\">{user_name}</a> кон🧴ил 😈\n"
                 f"кончи всего - {new_balance}"
             )
 
             # Отправляем стартовое сообщение
             msg = bot.send_message(
                 chat_id,
-                f"[0%] {user_link} [начинает подготовку...]",
+                f"[0%] <a href=\"tg://user?id={user_id}\">{user_name}</a> [начинает подготовку...]",
                 parse_mode="HTML"
             )
 
-            # Анимация - 3-4 кадра
-            for frame in range(1, 4):
+            # Анимация - 3 кадра
+            actions = ["открывает порнхаб 🍆", "настраивает прицел 🎯", "ищет вдохновение 💭"]
+            for i, action in enumerate(actions):
                 time.sleep(1)
-                percent = (frame / 3) * 100
-                action = get_random_action(user_id)
-                frame_text = f"[{int(percent)}%] {user_link} [{action}]"
+                percent = ((i + 1) / 3) * 100
+                frame_text = f"[{int(percent)}%] <a href=\"tg://user?id={user_id}\">{user_name}</a> [{action}]"
                 
                 try:
                     bot.edit_message_text(
@@ -174,8 +138,8 @@ def register_handlers(bot: telebot.TeleBot):
                         message_id=msg.message_id,
                         parse_mode="HTML"
                     )
-                except Exception as e:
-                    print(f"[КончаБот] Ошибка при редактировании сообщения: {e}")
+                except:
+                    pass
 
             # Финальное сообщение
             time.sleep(1)
@@ -186,12 +150,12 @@ def register_handlers(bot: telebot.TeleBot):
                     message_id=msg.message_id,
                     parse_mode="HTML"
                 )
-            except Exception as e:
-                print(f"[КончаБот] Ошибка при отправке финального сообщения: {e}")
+            except:
+                pass
 
     @bot.message_handler(commands=["leaders", "лидеры"])
     def handle_leaders(message: telebot.types.Message):
-        """Команда /лидеры кончи - выводит топ-10"""
+        """Команда /лидеры - выводит топ-10"""
         chat_id = message.chat.id
 
         top_users = db.get_top_users(limit=10)
@@ -200,15 +164,15 @@ def register_handlers(bot: telebot.TeleBot):
             bot.send_message(chat_id, "Никто ещё не кончил 😢")
             return
 
-        text = "<b>🏆 Топ-10 кончащих</b>\n\n"
+        text = "🏆 <b>Топ-10 кончащих</b>\n\n"
         for idx, (uid, balance) in enumerate(top_users, 1):
-            text += f"{idx}. Юзер {uid}: <code>{balance}</code> кончи\n"
+            text += f"{idx}. <code>{balance}</code> кончи\n"
 
         bot.send_message(chat_id, text, parse_mode="HTML")
 
     @bot.message_handler(commands=["дать"])
     def handle_give(message: telebot.types.Message):
-        """Администраторская команда: дать кончу на ответ сообщение"""
+        """Администраторская команда: дать кончу"""
         user_id = message.from_user.id
 
         # Проверка прав администратора
@@ -235,21 +199,20 @@ def register_handlers(bot: telebot.TeleBot):
 
         target_user = message.reply_to_message.from_user
         target_id = target_user.id
-        target_name = target_user.first_name or f"Юзер {target_id}"
+        target_name = target_user.first_name or target_user.username or f"Юзер {target_id}"
 
         new_balance = db.add_balance(target_id, amount)
-        target_link = make_user_link(target_id, target_name)
 
         bot.reply_to(
             message,
-            f"✅ Выдал {amount} кончи {target_link}\n"
+            f"✅ Выдал {amount} кончи <a href=\"tg://user?id={target_id}\">{target_name}</a>\n"
             f"Новый баланс: {new_balance}",
             parse_mode="HTML"
         )
 
     @bot.message_handler(commands=["забрать"])
     def handle_take(message: telebot.types.Message):
-        """Администраторская команда: забрать кончу на ответ сообщение"""
+        """Администраторская команда: забрать кончу"""
         user_id = message.from_user.id
 
         # Проверка прав администратора
@@ -276,20 +239,13 @@ def register_handlers(bot: telebot.TeleBot):
 
         target_user = message.reply_to_message.from_user
         target_id = target_user.id
-        target_name = target_user.first_name or f"Юзер {target_id}"
+        target_name = target_user.first_name or target_user.username or f"Юзер {target_id}"
 
         new_balance = db.add_balance(target_id, -amount)
-        target_link = make_user_link(target_id, target_name)
 
         bot.reply_to(
             message,
-            f"✅ Забрал {amount} кончи у {target_link}\n"
+            f"✅ Забрал {amount} кончи у <a href=\"tg://user?id={target_id}\">{target_name}</a>\n"
             f"Новый баланс: {new_balance}",
             parse_mode="HTML"
         )
-
-    @bot.message_handler(commands=["выстрел"])
-    def handle_fire_command(message: telebot.types.Message):
-        """Команда /выстрел"""
-        # Перенаправляем на обработчик текстовой команды
-        handle_fire(message)

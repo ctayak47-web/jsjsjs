@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-profile_bot.py - Адаптированный профиль-бот для интеграции
-Генерация мокапа профиля Telegram в стиле iOS
-"""
-
 import io
 import logging
 import os
@@ -13,13 +7,11 @@ import telebot
 from telebot import types
 from PIL import Image
 
-# Импортируем функции рендеринга
 from render import ProfileData, render_to_bytes
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Состояния диалога
 NAME, USERNAME, STATUS, BIO, PHOTO, TIMEZONE = range(6)
 
 STATUS_PRESETS = ["в сети", "был(а) недавно", "не в сети"]
@@ -32,16 +24,12 @@ TIMEZONE_OPTIONS = {
 
 TOKEN = os.environ.get("BOT_TOKEN_PROFILE", "")
 
-
 def get_current_time(tz_offset: int) -> str:
-    """Получить текущее время в указанном часовом поясе."""
     tz = timezone(timedelta(hours=tz_offset))
     now = datetime.now(tz)
     return now.strftime("%H:%M")
 
-
 def register_handlers(bot: telebot.TeleBot):
-    """Регистрировать все обработчики профиль-бота"""
 
     @bot.message_handler(commands=["start"])
     def start_handler(message: types.Message):
@@ -83,20 +71,19 @@ def register_handlers(bot: telebot.TeleBot):
                 + [[types.InlineKeyboardButton("Ввести свой вариант", callback_data="status:custom")]]
             )
             msg = bot.send_message(message.chat.id, "Выбери статус или введи свой:", reply_markup=keyboard)
-            
-            # Сохраняем user_data в callback контексте
+
             bot._profile_user_data = {**bot._profile_user_data, message.from_user.id: user_data}
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("status:"))
     def status_chosen_handler(call: types.CallbackQuery):
         bot.answer_callback_query(call.id)
         value = call.data.split(":", 1)[1]
-        
+
         if not hasattr(bot, '_profile_user_data'):
             bot._profile_user_data = {}
-        
+
         user_data = bot._profile_user_data.get(call.from_user.id, {})
-        
+
         if value == "custom":
             msg = bot.send_message(call.message.chat.id, "Введи свой текст статуса:")
             bot.register_next_step_handler(msg, status_custom_text_handler, user_data)
@@ -123,7 +110,7 @@ def register_handlers(bot: telebot.TeleBot):
 
     def got_photo_handler(message: types.Message, user_data: dict):
         avatar_img = None
-        
+
         if message.photo:
             file = bot.get_file(message.photo[-1].file_id)
             buf = io.BytesIO()
@@ -144,7 +131,7 @@ def register_handlers(bot: telebot.TeleBot):
             [[types.InlineKeyboardButton(tz, callback_data=f"tz:{tz}")] for tz in TIMEZONE_OPTIONS.keys()]
         )
         msg = bot.send_message(message.chat.id, "Выбери часовой пояс:", reply_markup=keyboard)
-        
+
         if not hasattr(bot, '_profile_user_data'):
             bot._profile_user_data = {}
         bot._profile_user_data[message.from_user.id] = user_data
@@ -158,7 +145,7 @@ def register_handlers(bot: telebot.TeleBot):
 
         if not hasattr(bot, '_profile_user_data'):
             bot._profile_user_data = {}
-        
+
         user_data = bot._profile_user_data.get(call.from_user.id, {})
 
         data = ProfileData(
@@ -176,32 +163,27 @@ def register_handlers(bot: telebot.TeleBot):
             photo=io.BytesIO(png_bytes),
             caption="Готово"
         )
-        
-        # Очищаем данные
+
         if call.from_user.id in bot._profile_user_data:
             del bot._profile_user_data[call.from_user.id]
 
-
 def create_bot() -> telebot.TeleBot:
-    """Создать и сконфигурировать профиль-бота"""
     if not TOKEN:
         print("[profile_bot] BOT_TOKEN_PROFILE не задан — бот не создан")
         return None
-    
+
     bot = telebot.TeleBot(TOKEN, parse_mode="HTML")
     bot._profile_user_data = {}
-    
+
     register_handlers(bot)
-    
+
     return bot
 
-
 def run(bot: telebot.TeleBot):
-    """Запустить профиль-бота в режиме polling"""
     if not bot:
         print("[profile_bot] Бот не инициализирован")
         return
-    
+
     try:
         print("[profile_bot] бот запущен, начинаю polling")
         bot.infinity_polling(timeout=30, long_polling_timeout=20)

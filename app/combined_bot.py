@@ -1,13 +1,3 @@
-"""
-combined_bot — один Telegram-бот (один токен) с экономикой GRAM.
-
-Функции:
-  • Экономика GRAM — виртуальная валюта и мини-игры (.бб, .куш, .мины, .джокер, .рул, ...)
-
-Обработчики зарегистрированы на ОДНОМ экземпляре telebot.TeleBot, чтобы не было
-конфликта getUpdates (два polling-цикла с одним токеном работать не могут).
-"""
-
 import os
 import telebot
 
@@ -18,9 +8,7 @@ TOKEN = os.environ.get("BOT_TOKEN", "")
 
 bot = telebot.TeleBot(TOKEN, parse_mode=None)
 
-# Регистрируем обработчики экономики
 ehandlers.register(bot)
-
 
 def run():
     if not TOKEN:

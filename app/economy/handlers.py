@@ -6,7 +6,6 @@ from . import db
 MINES_MULT = {1: 1.28, 2: 1.65, 3: 2.10, 4: 2.70, 5: 3.50, 6: 4.60, 7: 6.20, 8: 8.50}
 JOKER_MULT = {1: 1.33, 2: 1.81, 3: 2.45, 4: 3.32, 5: 4.50}
 
-
 def register(bot):
 
     @bot.message_handler(func=lambda m: m.chat.type == "private" and m.text and m.text.strip() == ".админка кроллов")

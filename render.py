@@ -1,20 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-render.py
-Генерация мокапа экрана профиля Telegram (iOS, тёмная тема) по образцу.
-Блок "канал" не рендерится.
-
-Все данные (имя, юзернейм, статус, "о себе") вводятся пользователем вручную.
-
-Изменения этой версии:
-- Шрифт Poppins вместо DejaVu Sans (геометричнее, ближе к SF Pro).
-- Иконки (звонок/звук/поиск/ещё) нарисованы вручную линиями/дугами,
-  а не текстовыми эмодзи-глифами (те кривые и не похожи на SF Symbols).
-- Панель действий — единая карточка с разделителями, как в реальном
-  Telegram, а не 4 отдельные скруглённые кнопки.
-- Более крупные, мягкие радиусы скругления карточек.
-"""
-
 from __future__ import annotations
 import io
 import os
@@ -24,10 +7,6 @@ from typing import Optional
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
-# ---------- Шрифты (лежат в fonts/ рядом с этим файлом) ----------
-# ВАЖНО: Poppins не содержит кириллических глифов (проверено — рисует
-# пустые квадраты вместо русских букв), поэтому используем DejaVu Sans,
-# у которого полная поддержка кириллицы.
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FONT_REGULAR = os.path.join(_BASE_DIR, "fonts", "DejaVuSans.ttf")
 FONT_MEDIUM = os.path.join(_BASE_DIR, "fonts", "DejaVuSans.ttf")
@@ -36,7 +15,6 @@ FONT_BOLD = os.path.join(_BASE_DIR, "fonts", "DejaVuSans-Bold.ttf")
 def _font(path: str, size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(path, size)
 
-# ---------- Цвета (тёмная тема iOS Telegram) ----------
 BG_COLOR = (0, 0, 0)
 CARD_COLOR = (28, 28, 30)
 TEXT_PRIMARY = (255, 255, 255)
@@ -47,7 +25,6 @@ BACK_BTN_BG = (44, 44, 46)
 DANGER = (255, 69, 58)
 ICON_COLOR = (255, 255, 255)
 
-
 @dataclass
 class ProfileData:
     display_name: str
@@ -55,13 +32,12 @@ class ProfileData:
     status: str = "был(а) недавно"
     bio: Optional[str] = None
     avatar: Optional[Image.Image] = None
-    music_title: Optional[str] = None   # напр. "2_5299035207041583898"
-    music_artist: Optional[str] = None  # напр. "<unknown>"
+    music_title: Optional[str] = None
+    music_artist: Optional[str] = None
     time_text: str = "9:41"
     battery_percent: int = 67
-    wifi_bars: int = 3          # 0-3
-    cellular_bars: int = 5      # 0-5
-
+    wifi_bars: int = 3
+    cellular_bars: int = 5
 
 def _circle_avatar(img: Image.Image, diameter: int) -> Image.Image:
     img = ImageOps.fit(img.convert("RGB"), (diameter, diameter), method=Image.LANCZOS)
@@ -71,7 +47,6 @@ def _circle_avatar(img: Image.Image, diameter: int) -> Image.Image:
     out = Image.new("RGBA", (diameter, diameter))
     out.paste(img, (0, 0), mask)
     return out
-
 
 def _placeholder_avatar(diameter: int, initials: str) -> Image.Image:
     img = Image.new("RGB", (diameter, diameter), (90, 90, 100))
@@ -85,7 +60,6 @@ def _placeholder_avatar(diameter: int, initials: str) -> Image.Image:
     w, h = bbox[2]-bbox[0], bbox[3]-bbox[1]
     draw.text(((diameter-w)/2 - bbox[0], (diameter-h)/2 - bbox[1]), initials, font=f, fill=(255, 255, 255))
     return _circle_avatar(img, diameter)
-
 
 def _wrap_text(draw, text, font, max_width):
     words = text.split()
@@ -101,28 +75,17 @@ def _wrap_text(draw, text, font, max_width):
         lines.append(cur)
     return lines
 
-
 def _centered_text(draw, cx, y, text, font, fill):
     bbox = draw.textbbox((0, 0), text, font=font)
     w = bbox[2]-bbox[0]
     draw.text((cx - w/2 - bbox[0], y), text, font=font, fill=fill)
     return bbox[3]-bbox[1]
 
-
-# ---------- Векторные иконки (рисуются линиями, не текстом) ----------
-
 def _icon_phone(draw, cx, cy, r, lw):
-    """
-    Иконка "трубка телефона" — классический SF Symbols-силуэт:
-    S-образная кривая от нижнего левого края до верхнего правого,
-    с двумя скруглёнными "раструбами" на концах.
-    Рисуется как последовательность точек плавной кривой + заливка контуром.
-    """
-    # Строим осевую линию трубки как кривую Безье через 4 контрольные точки
-    p0 = (cx - r*0.62, cy + r*0.68)   # нижний левый конец (микрофон)
+    p0 = (cx - r*0.62, cy + r*0.68)
     p1 = (cx - r*0.75, cy - r*0.05)
     p2 = (cx + r*0.05, cy - r*0.75)
-    p3 = (cx + r*0.68, cy - r*0.62)   # верхний правый конец (динамик)
+    p3 = (cx + r*0.68, cy - r*0.62)
 
     def bezier(t, a, b, c, d):
         x = (1-t)**3*a[0] + 3*(1-t)**2*t*b[0] + 3*(1-t)*t**2*c[0] + t**3*d[0]
@@ -136,15 +99,11 @@ def _icon_phone(draw, cx, cy, r, lw):
     for i in range(len(curve)-1):
         draw.line([curve[i], curve[i+1]], fill=ICON_COLOR, width=stroke_w, joint="curve")
 
-    # Скруглённые "раструбы" на концах (утолщение, как у настоящей трубки)
     end_r = stroke_w * 0.95
     draw.ellipse([p0[0]-end_r, p0[1]-end_r, p0[0]+end_r, p0[1]+end_r], fill=ICON_COLOR)
     draw.ellipse([p3[0]-end_r, p3[1]-end_r, p3[0]+end_r, p3[1]+end_r], fill=ICON_COLOR)
 
-
-
 def _icon_bell(draw, cx, cy, r, lw):
-    # Колокольчик: дуга сверху (купол) + прямые бока + маленький кружок-язычок снизу
     top = cy - r*0.6
     bottom = cy + r*0.35
     left = cx - r*0.55
@@ -155,17 +114,14 @@ def _icon_bell(draw, cx, cy, r, lw):
     draw.line([(left - lw*0.3, bottom), (right + lw*0.3, bottom)], fill=ICON_COLOR, width=lw)
     draw.ellipse([cx-r*0.14, bottom+lw*0.2, cx+r*0.14, bottom+lw*0.2+r*0.3], fill=ICON_COLOR)
 
-
 def _icon_video(draw, cx, cy, r, lw):
-    # Классическая иконка видеокамеры (как в iOS): корпус слева (прямоугольник
-    # со скруглением), объектив справа — трапеция, острым краем к корпусу.
     body_w, body_h = r*1.15, r*0.85
     bx0, by0 = cx - r*0.7, cy - body_h/2
     bx1, by1 = bx0 + body_w, by0 + body_h
     draw.rounded_rectangle([bx0, by0, bx1, by1], radius=max(2, int(body_h*0.25)), fill=ICON_COLOR)
 
-    lens_h_far = body_h * 0.42   # узкая сторона у корпуса
-    lens_h_near = body_h * 0.68  # широкая сторона к зрителю
+    lens_h_far = body_h * 0.42
+    lens_h_near = body_h * 0.68
     lens_x0 = bx1 - lw*0.2
     lens_x1 = cx + r*0.68
     draw.polygon([
@@ -175,9 +131,7 @@ def _icon_video(draw, cx, cy, r, lw):
         (lens_x1, cy - lens_h_near/2),
     ], fill=ICON_COLOR)
 
-
 def _icon_search(draw, cx, cy, r, lw):
-    # Лупа: окружность + ручка по диагонали
     rad = r * 0.5
     ox, oy = cx - r*0.12, cy - r*0.12
     draw.ellipse([ox-rad, oy-rad, ox+rad, oy+rad], outline=ICON_COLOR, width=lw)
@@ -185,18 +139,14 @@ def _icon_search(draw, cx, cy, r, lw):
     handle_end = (cx + r*0.55, cy + r*0.55)
     draw.line([handle_start, handle_end], fill=ICON_COLOR, width=int(lw*1.2))
 
-
 def _icon_more(draw, cx, cy, r, lw):
-    # Три точки по горизонтали
     dot_r = max(2, int(r*0.13))
     spacing = r * 0.55
     for i in (-1, 0, 1):
         x = cx + i*spacing
         draw.ellipse([x-dot_r, cy-dot_r, x+dot_r, cy+dot_r], fill=ICON_COLOR)
 
-
 def _action_row(draw, x0, x1, y0, h, entries, s):
-    """Единая карточка с колонками-кнопками, разделёнными тонкими линиями."""
     draw.rounded_rectangle([(x0, y0), (x1, y0+h)], radius=s(20), fill=CARD_COLOR)
     n = len(entries)
     col_w = (x1 - x0) / n
@@ -212,9 +162,7 @@ def _action_row(draw, x0, x1, y0, h, entries, s):
             lx = x0 + col_w*i
             draw.line([(lx, y0+s(18)), (lx, y0+h-s(18))], fill=DIVIDER, width=max(1, s(1)))
 
-
 def _draw_cellular_bars(draw, x, y, h, bars_filled, s):
-    """5 полосок сотовой сети, растущих по высоте слева направо."""
     n = 5
     bar_w = s(4)
     gap = s(2)
@@ -228,18 +176,13 @@ def _draw_cellular_bars(draw, x, y, h, bars_filled, s):
         draw.rounded_rectangle([bx0, by0, bx0+bar_w, by1], radius=max(1, s(1)), fill=color)
     return n*(bar_w+gap) - gap
 
-
 def _draw_wifi_icon(draw, cx, y_top, h, bars_filled, s):
-    """
-    Значок Wi-Fi — 3 концентрические дуги + точка снизу, растущие от точки вверх.
-    cx: центр по X. y_top: верхняя граница области значка. h: общая высота значка.
-    """
     dot_r = max(2, int(h*0.11))
     dot_cy = y_top + h - dot_r
     draw.ellipse([cx-dot_r, dot_cy-dot_r, cx+dot_r, dot_cy+dot_r],
                  fill=TEXT_PRIMARY if bars_filled >= 1 else (80, 80, 82))
 
-    n_arcs = 2  # две дуги над точкой (упрощённый, но пропорциональный wifi-знак)
+    n_arcs = 2
     max_span = h * 0.95
     for i in range(n_arcs):
         span = max_span * ((i+1) / n_arcs)
@@ -248,9 +191,7 @@ def _draw_wifi_icon(draw, cx, y_top, h, bars_filled, s):
         draw.arc(box, start=225, end=315, fill=color, width=max(2, s(2)))
     return h*1.3
 
-
 def _draw_battery(draw, x, y, h, percent, s):
-    """Корпус батареи с "носиком" и внутренней заливкой по проценту."""
     w = h * 1.9
     body_w = w - s(3)
     lw = max(1, s(1))
@@ -266,7 +207,6 @@ def _draw_battery(draw, x, y, h, percent, s):
     draw.rounded_rectangle([x+pad, y+pad, x+pad+fill_w, y+h-pad], radius=max(1, s(1)), fill=fill_color)
     return w
 
-
 def render_profile_mockup(data: ProfileData, width: int = 1080) -> Image.Image:
     scale = width / 591
     def s(v): return int(round(v * scale))
@@ -275,7 +215,6 @@ def render_profile_mockup(data: ProfileData, width: int = 1080) -> Image.Image:
     img = Image.new("RGB", (width, height), BG_COLOR)
     draw = ImageDraw.Draw(img)
 
-    # --- статус-бар: время слева, сеть/wifi/батарея справа ---
     draw.text((s(24), s(30)), data.time_text, font=_font(FONT_BOLD, s(16)), fill=TEXT_PRIMARY)
 
     icon_h = s(11)
@@ -294,7 +233,6 @@ def render_profile_mockup(data: ProfileData, width: int = 1080) -> Image.Image:
     cell_x = wifi_cx - wifi_w/2 - s(10) - cell_w
     _draw_cellular_bars(draw, cell_x, icon_y, icon_h, data.cellular_bars, s)
 
-    # --- кнопка назад ---
     back_d = s(56)
     back_xy = (s(24), s(90))
     draw.ellipse([back_xy, (back_xy[0]+back_d, back_xy[1]+back_d)], fill=BACK_BTN_BG)
@@ -304,7 +242,6 @@ def render_profile_mockup(data: ProfileData, width: int = 1080) -> Image.Image:
     draw.line([(cx_b+r*0.4, cy_b-r), (cx_b-r*0.5, cy_b), (cx_b+r*0.4, cy_b+r)],
               fill=(200, 200, 205), width=lw, joint="curve")
 
-    # --- аватар ---
     avatar_d = s(150)
     avatar_xy = ((width - avatar_d)//2, s(88))
     if data.avatar is not None:
@@ -317,12 +254,10 @@ def render_profile_mockup(data: ProfileData, width: int = 1080) -> Image.Image:
     y = avatar_xy[1] + avatar_d + s(20)
     cx = width / 2
 
-    # --- имя ---
     name_font = _font(FONT_BOLD, s(32))
     h_name = _centered_text(draw, cx, y, data.display_name, name_font, TEXT_PRIMARY)
     y += h_name + s(12)
 
-    # --- статус ---
     status_font = _font(FONT_REGULAR, s(18))
     h_status = _centered_text(draw, cx, y, data.status, status_font, TEXT_SECONDARY)
     y += h_status + s(44)
@@ -333,7 +268,6 @@ def render_profile_mockup(data: ProfileData, width: int = 1080) -> Image.Image:
         h_note = _centered_text(draw, cx, y, note_text, note_font, TEXT_SECONDARY)
         y += h_note + s(24)
 
-    # --- панель действий: единая карточка (5 кнопок, как в референсе) ---
     row_h = s(104)
     entries = [
         (_icon_phone, "звонок"),
@@ -345,7 +279,6 @@ def render_profile_mockup(data: ProfileData, width: int = 1080) -> Image.Image:
     _action_row(draw, s(24), width - s(24), y, row_h, entries, s)
     y += row_h + s(28)
 
-    # ---- карточка "имя пользователя" / "о себе" ----
     card_x0, card_x1 = s(24), width - s(24)
     pad = s(22)
     label_font = _font(FONT_REGULAR, s(14))
@@ -376,7 +309,6 @@ def render_profile_mockup(data: ProfileData, width: int = 1080) -> Image.Image:
 
     y = card_y0 + card_h + s(22)
 
-    # ---- карточка "Добавить в контакты" / "Заблокировать" ----
     row_h2 = s(68)
     card2_h = row_h2 * 2
     draw.rounded_rectangle([(card_x0, y), (card_x1, y+card2_h)], radius=s(22), fill=CARD_COLOR)
@@ -391,11 +323,9 @@ def render_profile_mockup(data: ProfileData, width: int = 1080) -> Image.Image:
     img = img.crop((0, 0, width, final_height))
     return img
 
-
 def render_to_bytes(data: ProfileData, width: int = 1080) -> bytes:
     img = render_profile_mockup(data, width=width)
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     buf.seek(0)
     return buf.read()
-

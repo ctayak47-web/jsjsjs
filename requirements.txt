@@ -4,5 +4,3 @@ aiogram==3.17.0
 python-dotenv==1.0.1
 httpx==0.28.1
 pydantic==2.10.4
-pydantic-core==2.10.4 # зафиксируйте под вашу версию pydantic или оставьте совместимую стабильную
-aiohttp==3.10.11

@@ -1,1 +1,0 @@
-window.CROLDROP_GIFTS={cdn:"https://cdn.changes.tg/gifts/",api:"https://api.changes.tg/"};
